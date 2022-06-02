@@ -1,5 +1,11 @@
 # Super Alpha Pet
+Inquiries to : hwsong@bu.edu
 
+Developed in collaboration with:
+
+Hayden Matheus:
+ - [Github](https://github.com/Hayden-Matheus)
+ - [Twitter](twitter.com/MCSReverb)
 ## Super Auto Pet playing AI
 
 ## Components
