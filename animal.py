@@ -47,6 +47,9 @@ class Animal():
 		else:
 			return eventnames.HURT
 
+	def faint(self):
+		return eventnames.ON_FAINT
+
 
 class Ant(Animal):
 	def __init__(self):
@@ -91,9 +94,6 @@ class Mosquito(Animal):
 		event = target.takedamage(1*self.level)
 		team2.setpos(target)
 		return event
-
-
-
 
 
 
