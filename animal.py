@@ -38,12 +38,16 @@ class Animal():
 		pass
 
 	def takedamage(self, dmg):
+		#TODO: Garlic, Weakness, Coconut
 		if self.food == 'melon':
 			self.food = ''
-			return
+			dmg = np.clip(dmg-20, 0)
+			if dmg==0:
+				return
+
 		self.health -= dmg
 		if self.health<=0: #faint
-			return eventnames.ON_FAINT
+			return self.faint()
 		else:
 			return eventnames.HURT
 
