@@ -1,7 +1,5 @@
 #
 
-
-
 class Battle:
     def doBattle():
         #check start effects
