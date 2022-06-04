@@ -10,6 +10,7 @@ class Animal():
 		self.level = 0
 		self.health = 0
 		self.attack = 0
+		self.frozen = False
 
 		# Maybe code these as ints later
 		self.trigger = ""
@@ -99,6 +100,15 @@ class Mosquito(Animal):
 		team2.setpos(target)
 		return event
 
-
+class Bee(Animal):
+	# Token Bee
+	def __init__(self):
+		super().__init__()
+		self.trigger= ''
+		self.health = 1
+		self.attack = 1
+		self.level = 1
+		self.exp = 0
+		self.needs = []
 
 
