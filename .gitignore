@@ -2,3 +2,5 @@ Notes.md
 __pycache__/
 *.ipynb
 torch_test.py
+Papers/
+__pycache__/eventnames.cpython-38.pyc

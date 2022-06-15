@@ -10,6 +10,7 @@ Hayden Matheus:
 
 ## Components
  - Reinforcement Learning
+ - Monte-Carlo Tree Search
  - Animal/Food database
  - Battle Simulator
  - Training Dataset ? 
