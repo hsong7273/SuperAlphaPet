@@ -22,8 +22,9 @@ class Battle:
 
     #Param: team1,team2 = arrays of pet objects
     def __init__(self, team1, team2):
-        self.team1 = team1
-        self.team2 = team2
+        # Prepare scratch teams
+        self.team1 = team1.clone()
+        self.team2 = team2.clone()
 
     #Param types: team1,array team2,array
     def getStartEffectsTemp(team1, team2):

@@ -18,26 +18,29 @@ class Game():
 
 		pass
 
-	def buypet(target, destination, level=False):
+	def buypet(self, target, destination, level=False):
 		pass
-	def movepet(target, destination, level=False):
+	def movepet(self, target, destination, level=False):
 		pass
-	def sellpet(target):
+	def sellpet(self, target):
 		pass
-	def freezeitem(target):
+	def freezeitem(self, target):
 		pass
-	def reroll():
+	def reroll(self):
 		pass
-	def endturn():
+	def endturn(self):
 		pass
-	def legelactions(shop):
+	def legelactions(self, shop):
 		pass
-	def evaluate():
+	def evaluate(self):
 		pass
-	def statevector():
+	def statevector(self):
 		sv = []
 		return sv
-	def executeaction(a_ind):
+	def executeaction(self, a_ind):
+		# choose execute action function
+		if a_ind==159:
+			self.endturn()
 		pass
 
 
