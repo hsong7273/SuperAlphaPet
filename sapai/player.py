@@ -97,7 +97,89 @@ class Player():
             self.action_history = []
         else:
             self.action_history = list(action_history)
+
+        # Count pets/foods/statuses in pack, for state vector
+        nPets = 0
+        nFoods = 0
+        nStatuses = 0
+        # Lookup of Pet, Food, Status index
+        self.petDict = {}
+        self.foodDict = {}
+        self.statusDict = {}
+        for p in data['pets'].values():
+            if self.pack in p['packs']:
+                self.petDict[p['id']] = nPets
+                nPets += 1
+        for f in data['foods'].values():
+            if self.pack in f['packs']:
+                self.foodDict[f['id']] = nFoods
+                nFoods += 1
+        for s in data['statuses'].values():
+            self.statusDict[s['id']] = nStatuses
+            nStatuses += 1
+        self.nPets = nPets
+        self.nFoods = nFoods
+        self.nStatuses = nStatuses
+        # Calculate vector size and fields from game information
+        self.state_length = self._max_team*(self.nPets+self.nStatuses+3) # Team state
+        self.state_length += 7*(self.nPets+3)+2*(self.nFoods+1) # shop state(pets/food/costs)
+        self.state_length += 4 # gold/lives/wins/turn
+        
     
+    @property
+    def state_vector(self):
+        ### converts game state into state vector for AI
+        state_v = np.zeros(self.state_length)
+
+        # Parse team information
+        for idx, ts in enumerate(self.team):
+            if ts.pet.name=='pet-none':
+                continue
+            # Team Species
+            petid = self.petDict[ts.pet.name]
+            state_v[idx*self.nPets+petid] = 1
+            # Team stats
+            state_v[self._max_team*self.nPets+idx*3] = ts.pet.attack/50.
+            state_v[self._max_team*self.nPets+idx*3+1] = ts.pet.health/50.
+            state_v[self._max_team*self.nPets+idx*3+2] = ts.pet.experience+1
+            # Team Statuses
+            if ts.pet.status=='none':
+                continue
+            statusid = self.statusDict[ts.pet.status]
+            state_v[self._max_team*(self.nPets+3)+idx*self.nStatuses+statusid] = 1
+        # Parse shop information
+        teamoffset = self._max_team*(self.nPets+3)+self._max_team*self.nStatuses
+        # TODO: reimplement with fixed length shop
+        n_foods = 0
+        for idx, slot in enumerate(self.shop):
+            if slot.slot_type=="pet": # upto 7 pet slots
+                petid = self.petDict[slot.item.name]
+                state_v[teamoffset+idx*self.nPets+petid] = 1
+                state_v[teamoffset+7*self.nPets+idx*3] = slot.cost
+                state_v[teamoffset+7*self.nPets+idx*3+1] = slot.item.health/50.
+                state_v[teamoffset+7*self.nPets+idx*3+2] = slot.item.attack/50.
+
+            if slot.slot_type=="food": # upto 2 food slots
+                foodid = self.foodDict[slot.item.name]
+                state_v[teamoffset+7*(self.nPets+3)+n_foods*self.nFoods+foodid]=1
+                state_v[teamoffset+7*(self.nPets+3)+2*self.nFoods+n_foods]=slot.cost
+                n_foods += 1 # how many foods so far in shop (1,2)
+
+        # Game State
+        state_v[-1] = self.turn
+        state_v[-2] = self.wins
+        state_v[-3] = self.lives
+        state_v[-4] = self.gold
+
+
+        return state_v
+
+    @property
+    def legal_actions(self):
+        pass
+    def agent_action(self, action_idx):
+        ### Interpret action_idx and execute
+        pass
     
     @storeaction
     def start_turn(self, winner=None):
