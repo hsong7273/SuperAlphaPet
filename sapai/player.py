@@ -8,6 +8,40 @@ import sapai.shop
 from sapai.shop import Shop
 from sapai.teams import Team,TeamSlot
 
+def onehot(idx, nb_classes):
+    oh = np.zeros(nb_classes)
+    if idx==-1:
+        return oh
+    oh[idx] = 1
+    return oh
+
+def targeted_food(food):
+    name = food.name
+    targeted = ["food-apple", 
+                "food-honey", 
+                "food-cupcake",
+                "food-meat-bone",
+                "food-sleeping-pill",
+                "food-garlic",
+                "food-pear",
+                "food-chili",
+                "food-chocolate",
+                "food-melon",
+                "food-mushroom",
+                "food-steak",
+                "food-milk"
+                ]
+    team = ["food-salad-bowl",
+            "food-canned-food",
+            "food-sushi",
+            "food-pizza",
+            ]
+    if name in targeted:
+        return True
+    elif name in team:
+        return False
+    else:
+        raise Exception("Food unknown to f:targeted_food")
 
 def storeaction(func):
     def store_action(*args, **kwargs):
@@ -122,61 +156,190 @@ class Player():
         self.nStatuses = nStatuses
         # Calculate vector size and fields from game information
         self.state_length = self._max_team*(self.nPets+self.nStatuses+3) # Team state
-        self.state_length += 7*(self.nPets+3)+2*(self.nFoods+1) # shop state(pets/food/costs)
+        self.state_length += 7*(self.nPets+4)+2*(self.nFoods+2) # shop state(pets/food/costs)
         self.state_length += 4 # gold/lives/wins/turn
+        # Count total actions for agent
+        # Move, Move+LevelUp
+        self.action_length = self._max_team*4+self._max_team*4
+        # BUYPET-PLACE, BUYPET-LEVEUP, Sell
+        self.action_length += 7*self._max_team+7*self._max_team+self._max_team
+        # BUY FOOD, FREEZE/UNFREEZE, ROLL, END TURN
+        self.action_length += 2*self._max_team+2+14+2
         
     
     @property
     def state_vector(self):
         ### converts game state into state vector for AI
-        state_v = np.zeros(self.state_length)
+        state_v = np.array([])
 
         # Parse team information
         for idx, ts in enumerate(self.team):
             if ts.pet.name=='pet-none':
-                continue
-            # Team Species
-            petid = self.petDict[ts.pet.name]
-            state_v[idx*self.nPets+petid] = 1
-            # Team stats
-            state_v[self._max_team*self.nPets+idx*3] = ts.pet.attack/50.
-            state_v[self._max_team*self.nPets+idx*3+1] = ts.pet.health/50.
-            state_v[self._max_team*self.nPets+idx*3+2] = ts.pet.experience+1
-            # Team Statuses
-            if ts.pet.status=='none':
-                continue
-            statusid = self.statusDict[ts.pet.status]
-            state_v[self._max_team*(self.nPets+3)+idx*self.nStatuses+statusid] = 1
+                state_v = np.concatenate((state_v, np.zeros(self.nPets+3+self.nStatuses)))
+            else:
+                # Pet state
+                petid = self.petDict[ts.pet.name]
+                pet_v = onehot(petid, self.nPets)
+                stat_v = [ts.pet.attack/50.,ts.pet.health/50.,ts.pet.experience+1]
+                # Pet Statuses
+                if ts.pet.status=='none':
+                    status_v = onehot(-1, self.nStatuses)
+                else:
+                    statusid = self.statusDict[ts.pet.status]
+                    status_v = onehot(statusid, self.nStatuses)
+                pet_v = np.concatenate((pet_v, stat_v, status_v))
+                state_v = np.concatenate((state_v, pet_v))
+
         # Parse shop information
-        teamoffset = self._max_team*(self.nPets+3)+self._max_team*self.nStatuses
         # TODO: reimplement with fixed length shop
+        n_pets = 0
         n_foods = 0
         for idx, slot in enumerate(self.shop):
             if slot.slot_type=="pet": # upto 7 pet slots
                 petid = self.petDict[slot.item.name]
-                state_v[teamoffset+idx*self.nPets+petid] = 1
-                state_v[teamoffset+7*self.nPets+idx*3] = slot.cost
-                state_v[teamoffset+7*self.nPets+idx*3+1] = slot.item.health/50.
-                state_v[teamoffset+7*self.nPets+idx*3+2] = slot.item.attack/50.
+                slot_v = onehot(petid, self.nPets)
+                stat_v = [slot.item.attack/50., slot.item.health/50., slot.cost, slot.frozen*1]
+                slot_v = np.concatenate((slot_v, stat_v))
+                state_v = np.concatenate((state_v, slot_v))
+                n_pets +=1
 
             if slot.slot_type=="food": # upto 2 food slots
+                if n_pets<7: # pad state vector with empty pet slots
+                    state_v = np.concatenate((state_v, np.zeros((7-n_pets)*(self.nPets+4))))
+
                 foodid = self.foodDict[slot.item.name]
-                state_v[teamoffset+7*(self.nPets+3)+n_foods*self.nFoods+foodid]=1
-                state_v[teamoffset+7*(self.nPets+3)+2*self.nFoods+n_foods]=slot.cost
+                food_v = onehot(foodid, self.nFoods)
+                state_v = np.concatenate((state_v, food_v, [slot.cost, 1*slot.frozen]))
                 n_foods += 1 # how many foods so far in shop (1,2)
+        # zero-pad if less than 2 foods in shop
+        state_v = np.concatenate((state_v, np.zeros((2-n_foods)*(self.nFoods+2))))
 
         # Game State
-        state_v[-1] = self.turn
-        state_v[-2] = self.wins
-        state_v[-3] = self.lives
-        state_v[-4] = self.gold
-
-
+        game_state = [self.turn, self.wins, self.lives, self.gold]
+        state_v = np.concatenate((state_v, game_state))
+        if len(state_v) != self.state_length:
+            raise Exception(f"Wrong state vector size, {len(state_v)}, not {self.state_length}")
         return state_v
 
     @property
     def legal_actions(self):
-        pass
+        '''mask array of legal action_idx'''
+        legal_v = np.array([])
+        # MOVE 5*4=20
+        for idx, ts in enumerate(self.team):
+            if ts.pet.name=='pet-none':
+                legal_v = np.concatenate((legal_v, np.zeros(4)))
+            else:
+                legal_v = np.concatenate((legal_v, np.ones(4)))
+
+        # MOVE-LEVELUP 5*4=20
+        for idx, ts in enumerate(self.team):
+            if ts.pet.name=='pet-none':
+                legal_v = np.concatenate((legal_v, np.zeros(4)))
+                continue
+            if ts.pet.level==3:
+                legal_v = np.concatenate((legal_v, np.zeros(4)))
+                continue
+            # check friends
+            target = ts.pet.name
+            friends = [i for i in range(5) if i!=idx]
+            cancombine = np.zeros(4)
+            for idx, f in enumerate(friends):
+                f_pet = self.team[f].pet
+                if f_pet.name==target and f_pet.experience!=3:
+                    cancombine[idx] = 1
+            legal_v = np.concatenate((legal_v, cancombine))
+        
+        # BUYPET-PLACE 7*5=35
+        # Check team full
+        if len(self.team)==5:
+            legal_v = np.concatenate((legal_v, 7*np.zeros(5)))
+        # if not full, new pet can be placed anywhere, team will shift
+        else:
+            for idx, slot in enumerate(self.shop):
+                if slot.slot_type!="pet" or slot.cost<self.gold:
+                    legal_v = np.concatenate((legal_v, np.zeros(5)))
+                else:
+                    legal_v = np.concatenate((legal_v, np.ones(5)))
+            legal_v = np.concatenate((legal_v, np.zeros(5*(7-len(self.shop)))))
+
+        # BUYPET-LEVELUP 7*5=35
+        if len(self.team)==0: #empty team
+            legal_v = np.concatenate((legal_v, np.zeros(35)))
+        else:
+            for idx, slot in enumerate(self.shop):
+                target = slot.item.name
+                if slot.slot_type!="pet" or slot.cost<self.gold:
+                    legal_v = np.concatenate((legal_v, np.zeros(5)))
+                    continue
+                # if affordable pet, check team
+                buy_v = np.zeros(5)
+                for idx, ts in enumerate(self.team):
+                    if ts.pet.name==target and ts.pet.level<3:
+                        buy_v[idx] = 1
+                legal_v = np.concatenate((legal_v, buy_v))
+            legal_v = np.concatenate((legal_v, np.zeros(5*(7-len(self.shop)))))
+
+        # SELL 5
+        availsell = np.ones(5)
+        for idx, ts in enumerate(self.team):
+            if ts.pet.name=='pet-none':
+                availsell[idx] = 0
+        legal_v = np.concatenate((legal_v, availsell))
+
+        # BUY FOOD (target/team) 2*5+2=12
+        n_foods = 0
+        for idx, slot in enumerate(self.shop):
+            if slot.slot_type=='pet':
+                continue
+            if slot.cost>self.gold:
+                legal_v = np.concatenate((legal_v, np.zeros(6)))
+                continue
+            # check if targeted food
+            food = slot.item
+            n_foods+=1
+            targeted = targeted_food(food)
+            if targeted:
+                legal_v = np.concatenate((legal_v, np.ones(5),[0]))
+            else:
+                legal_v = np.concatenate((legal_v, np.zeros(5),[1]))
+        # less than 2 foods in shop
+        legal_v = np.concatenate((legal_v, np.zeros((2-n_foods)*6)))
+
+        # FREEZE/UNFREEZE 7*2=14
+        #TODO: reimplement with fixed length shop
+        canfreeze = np.zeros(14)
+        n_foods = 0
+        n_pets = 0
+        for idx, slot in enumerate(self.shop):
+            if slot.slot_type=="pet":
+                n_pets+=1
+                if slot.frozen:
+                    canfreeze[7+idx] = 1
+                else:
+                    canfreeze[idx] = 1
+        
+            if slot.slot_type=="food":
+                #to make foods start at 5
+                if n_pets<5: 
+                    n_pets = 5
+                if slot.frozen:
+                    canfreeze[7+n_pets+n_foods]=1
+                else:
+                    canfreeze[n_pets+n_foods]=1
+                n_foods += 1
+        legal_v = np.concatenate((legal_v, canfreeze))
+
+        # ROLL 1
+        legal_v = np.concatenate((legal_v, [1*(self.gold>0)]))
+        # END TURN 1
+        legal_v = np.concatenate((legal_v, [1]))
+        
+        if len(legal_v) != self.action_length:
+            raise Exception(f"Wrong action vector size, {len(legal_v)}, not {self.action_length}")
+        return legal_v
+
+    
     def agent_action(self, action_idx):
         ### Interpret action_idx and execute
         pass
