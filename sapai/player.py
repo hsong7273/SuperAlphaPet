@@ -101,6 +101,7 @@ class Player():
         
         ### Default Parameters
         self._max_team = 5
+        self._max_shop = 7
         
         ### Keep track of outcome of last battle for snail
         self.lf_winner = lf_winner
@@ -156,13 +157,13 @@ class Player():
         self.nStatuses = nStatuses
         # Calculate vector size and fields from game information
         self.state_length = self._max_team*(self.nPets+self.nStatuses+3) # Team state
-        self.state_length += 7*(self.nPets+4)+2*(self.nFoods+2) # shop state(pets/food/costs)
+        self.state_length += self._max_shop*(self.nPets+4)+2*(self.nFoods+2) # shop state(pets/food/costs)
         self.state_length += 4 # gold/lives/wins/turn
         # Count total actions for agent
         # Move, Move+LevelUp
-        self.action_length = self._max_team*4+self._max_team*4
+        self.action_length = 2*self._max_team*(self._max_team-1)
         # BUYPET-PLACE, BUYPET-LEVEUP, Sell
-        self.action_length += 7*self._max_team+7*self._max_team+self._max_team
+        self.action_length += 2*self._max_shop*self._max_team+self._max_team
         # BUY FOOD, FREEZE/UNFREEZE, ROLL, END TURN
         self.action_length += 2*self._max_team+2+14+2
         
@@ -228,22 +229,22 @@ class Player():
         # MOVE 5*4=20
         for idx, ts in enumerate(self.team):
             if ts.pet.name=='pet-none':
-                legal_v = np.concatenate((legal_v, np.zeros(4)))
+                legal_v = np.concatenate((legal_v, np.zeros(self._max_team-1)))
             else:
-                legal_v = np.concatenate((legal_v, np.ones(4)))
+                legal_v = np.concatenate((legal_v, np.ones(self._max_team-1)))
 
         # MOVE-LEVELUP 5*4=20
         for idx, ts in enumerate(self.team):
             if ts.pet.name=='pet-none':
-                legal_v = np.concatenate((legal_v, np.zeros(4)))
+                legal_v = np.concatenate((legal_v, np.zeros(self._max_team-1)))
                 continue
             if ts.pet.level==3:
-                legal_v = np.concatenate((legal_v, np.zeros(4)))
+                legal_v = np.concatenate((legal_v, np.zeros(self._max_team-1)))
                 continue
             # check friends
             target = ts.pet.name
-            friends = [i for i in range(5) if i!=idx]
-            cancombine = np.zeros(4)
+            friends = [i for i in range(self._max_team) if i!=idx]
+            cancombine = np.zeros(self._max_team-1)
             for idx, f in enumerate(friends):
                 f_pet = self.team[f].pet
                 if f_pet.name==target and f_pet.experience!=3:
@@ -252,7 +253,7 @@ class Player():
         
         # BUYPET-PLACE 7*5=35
         # Check team full
-        if len(self.team)==5:
+        if len(self.team)==self._max_team:
             legal_v = np.concatenate((legal_v, 7*np.zeros(5)))
         # if not full, new pet can be placed anywhere, team will shift
         else:
@@ -342,6 +343,20 @@ class Player():
     
     def agent_action(self, action_idx):
         ### Interpret action_idx and execute
+        # This move should always be legal, check anyway
+        if self.legal_actions[action_idx] == 0:
+            raise Exception("Attempted Illegal Move")
+        # MOVE 5*4=20
+        # MOVE-LEVELUP 5*4=20
+        # BUYPET-PLACE 7*5=35
+        # BUYPET-LEVELUP 7*5=35
+        # SELL 5
+        # BUY FOOD (target/team) 2*5+2=12
+        # FREEZE/UNFREEZE 7*2=14
+        # ROLL 1
+        # END TURN 1
+
+
         pass
     
     @storeaction
