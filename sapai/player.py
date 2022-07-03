@@ -167,7 +167,29 @@ class Player():
         # BUY FOOD, FREEZE/UNFREEZE, ROLL, END TURN
         self.action_length += 2*self._max_team+2+14+2
         
-    
+    @property
+    def team_state(self):
+        '''State vector for team only, for team-value networks'''
+        state_v = np.array([])
+        # Parse team information
+        for idx, ts in enumerate(self.team):
+            if ts.pet.name=='pet-none':
+                state_v = np.concatenate((state_v, np.zeros(self.nPets+3+self.nStatuses)))
+            else:
+                # Pet state
+                petid = self.petDict[ts.pet.name]
+                pet_v = onehot(petid, self.nPets)
+                stat_v = [ts.pet.attack/50.,ts.pet.health/50.,ts.pet.experience+1]
+                # Pet Statuses
+                if ts.pet.status=='none':
+                    status_v = onehot(-1, self.nStatuses)
+                else:
+                    statusid = self.statusDict[ts.pet.status]
+                    status_v = onehot(statusid, self.nStatuses)
+                pet_v = np.concatenate((pet_v, stat_v, status_v))
+                state_v = np.concatenate((state_v, pet_v))
+        return state_v
+
     @property
     def state_vector(self):
         ### converts game state into state vector for AI
@@ -341,23 +363,71 @@ class Player():
         return legal_v
 
     
-    def agent_action(self, action_idx):
+    def execute(self, action_idx):
         ### Interpret action_idx and execute
         # This move should always be legal, check anyway
         if self.legal_actions[action_idx] == 0:
             raise Exception("Attempted Illegal Move")
         # MOVE 5*4=20
+        if 0<=action_idx<20:
+            idx = action_idx-20
+            target = int(idx/4)
+            friends = [i for i in range(5) if i!=sacrifice]
+            destination = friends[idx%4] 
+            #TODO: MOVE PET FUNCTION(target, destination)
         # MOVE-LEVELUP 5*4=20
+        elif 20<=action_idx<40:
+            idx = action_idx-20
+            sacrifice = int(idx/4)
+            friends = [i for i in range(5) if i!=sacrifice]
+            target = friends[idx%4] # pet to levelup
+            self.combine(target, sacrifice)
+
         # BUYPET-PLACE 7*5=35
+        elif 40<=action_idx<75:
+            idx = action_idx-40
+            idx = action_idx-75
+            s_pet = int(idx/5)
+            teamspot = idx%5
+            #TODO: BUY-PLACE FUNCTION(s_pet, teamspot)
+            pass
         # BUYPET-LEVELUP 7*5=35
+        elif 75<=action_idx<110:
+            idx = action_idx-75
+            s_pet = int(idx/5)
+            teamspot = idx%5
+            self.buy_combine(s_pet, teamspot)
+
         # SELL 5
+        elif 110<=action_idx<115:
+            idx = action_idx-110
+            self.sell(idx)
+
         # BUY FOOD (target/team) 2*5+2=12
+        elif 115<=action_idx<127:
+            idx = action_idx-115
+            food = int(idx/6)
+            target = idx%6
+            if target==5:
+                target=None
+            self.buy_food(food, target)
+
         # FREEZE/UNFREEZE 7*2=14
+        elif 127<=action_idx<141:
+            idx = action_idx-127
+            freeze = int(idx/7)
+            item = idx%7
+            if freeze==0:
+                self.freeze(item)
+            elif freeze==1:
+                self.unfreeze(item)
         # ROLL 1
+        elif action_idx==141:
+            self.roll()
         # END TURN 1
+        elif action_idx==142:
+            self.end_turn()
 
-
-        pass
     
     @storeaction
     def start_turn(self, winner=None):
@@ -366,9 +436,9 @@ class Player():
         self.gold = self.default_gold
         self.lf_winner = winner
         
-        ### Roll shop
-        self.shop.turn += 1
-        self.shop.roll()
+        ### Update Shop Rules and roll shop
+        self.shop.next_turn() 
+        #TODO: check for shop-player turn desync?
 
         ### Activate start-of-turn triggers after rolling shop
         for slot in self.team:

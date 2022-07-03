@@ -267,6 +267,8 @@ class Shop():
         new_shop_slots_pet = []
         new_shop_slots_food = []
         for slot in self.shop_slots:
+            # Update shop slot turn with shop turn
+            slot.turn = self.turn
             if slot.slot_type == "pet":
                 new_shop_slots_pet.append(slot)
             elif slot.slot_type == "food":
@@ -295,10 +297,7 @@ class Shop():
         self.turn += 1
         
         ### Update rules of the shop to generate a shop state
-        self.update_shop_rules()
-        
-        return self.roll()
-    
+        self.update_shop_rules()    
     
     def check_rules(self):
         """
