@@ -118,6 +118,8 @@ class Shop():
         self.fp = []                    ### Probability of food
         self.fslots = 0
         self.pslots = 0
+        self.maxfslots = 2
+        self.maxpslots = 5
         self.max_slots = 7
         self.shop_attack = shop_attack  ### Keep track of can/chicken stats
         self.shop_health = shop_health  ### Keep track of can/chicken stats
@@ -138,7 +140,7 @@ class Shop():
             
     
     def buy(self, obj):
-        """ Only thing that buy does is to remove the item from the shop list """
+        """ Only thing that buy does is to replace the item from the shop list with an empty slot """
         if type(obj) == int:
             idx = obj
         else:
@@ -151,7 +153,13 @@ class Shop():
         if idx < 0:
             raise Exception("Unrecognized Shop Object {}".format(obj))
         
-        del(self.shop_slots[idx])
+        emptypet = Pet()
+        emptyfood = Food()
+
+        if type(obj) == type(emptypet):
+            self.shop_slots[idx].item = emptypet
+        if type(obj) == type(emptyfood):
+            self.shop_slots[idx].item = emptyfood
         
     
     def index(self, obj):
@@ -207,10 +215,34 @@ class Shop():
                     slot.item._health += self.shop_health
                 if slot.slot_type == "food":
                     slot.cost = slot.item.cost
+        if len(self.shop_slots) < self.max_slots:
+            self.add_empty()
         for team_slot in team:
             team_slot._pet.shop_ability(shop=self,trigger="roll")
 
-    
+    def add_empty(self):
+
+        rules = get_shop_rules(self.turn)
+        emptypet = Pet()
+        emptyfood = Food()
+        pslots = rules[0]
+        fslots = rules[1]
+
+        #Exit if no need to make empty slots
+        if pslots == self.maxpslots:
+            if fslots == self.maxfslots:
+                return
+            else:
+                pass
+        
+        if pslots < self.maxpslots:
+            eslots = self.maxpslots - pslots
+            for n in range(0,eslots):
+                self.append(emptypet)
+
+        if fslots < self.maxfslots:
+            self.append(emptyfood)   
+
     def freeze(self, idx):
         """
         Freeze a shop index 
@@ -360,7 +392,7 @@ class Shop():
         for iter_idx,slot in enumerate(self.shop_slots):
             if slot.slot_type == "pet":
                 pslots.append(iter_idx)
-            elif slot.slot_type == "leveup":
+            elif slot.slot_type == "levelup":
                 pslots.append(iter_idx)
         for iter_idx,slot in enumerate(self.shop_slots):
             if slot.slot_type == "food":
@@ -390,10 +422,23 @@ class Shop():
         """
         Append should be used when adding an animal from a levelup
         """
+        hasNone = False
         if len(self.shop_slots) >= self.max_slots:
             ### Max slots already reached so cannot be added
-            return
-        
+            counter = 0
+            for slot in self.shop_slots:
+                if hasNone == False:
+                    if slot.item.name == "pet-none" or slot.item.name == "food-none":
+                        hasNone = True
+                        del(self.shop_slots[counter]) #deletes empty slot
+                elif hasNone == True:
+                    break
+                counter += 1
+            if hasNone == False:
+                return
+
+
+
         add_slot = ShopSlot(obj, pack=self.pack, turn=self.turn, seed_state=self.seed_state)
         pslots = []
         fslots = []
@@ -753,7 +798,8 @@ class ShopSlot():
         """
         Freeze current slot such that shop rolls don't update the ShopSlot
         """
-        self.frozen = True
+        if self.item.name != "pet-none" or self.slot_type != "food-none":
+            self.frozen = True
     
     
     def unfreeze(self):
