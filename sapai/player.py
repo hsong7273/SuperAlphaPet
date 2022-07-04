@@ -323,48 +323,43 @@ class Player():
         # BUY FOOD (target/team) 2*5+2=12
         n_foods = 0
         for idx, slot in enumerate(self.shop):
-            if slot.slot_type=='pet' or 'levelup':
+            if slot.slot_type=='pet' or slot.slot_type=='levelup':
                 continue
             if slot.item.name=='food-none':
                 legal_v = np.concatenate((legal_v, np.zeros(6)))
+                n_foods+=1
                 continue
             if slot.slot_type=='food':
                 if slot.cost>self.gold:
                     legal_v = np.concatenate((legal_v, np.zeros(6)))
+                    n_foods+=1
                     continue
                 # check if targeted food
                 food = slot.item
                 n_foods+=1
                 targeted = targeted_food(food)
                 if targeted:
-                    legal_v = np.concatenate((legal_v, np.ones(5),[0]))
+                    # Check team slots
+                    feedable = np.zeros(5)
+                    for i, ts in enumerate(self.team):
+                        if not ts.pet.name=='pet-none':
+                            feedable[i] = 1
+                    legal_v = np.concatenate((legal_v, feedable,[0]))
                 else:
                     legal_v = np.concatenate((legal_v, np.zeros(5),[1]))
-        # less than 2 foods in shop
+        # pad if less than 2 foodslots in shop
         legal_v = np.concatenate((legal_v, np.zeros((2-n_foods)*6)))
 
         # FREEZE/UNFREEZE 7*2=14
-
         canfreeze = np.zeros(14)
-        n_foods = 0
-        n_pets = 0
         for idx, slot in enumerate(self.shop):
-            if slot.slot_type=="pet":
-                n_pets+=1
-                if slot.frozen:
-                    canfreeze[7+idx] = 1
-                else:
-                    canfreeze[idx] = 1
-        
-            if slot.slot_type=="food":
-                #to make foods start at 5
-                if n_pets<5: 
-                    n_pets = 5
-                if slot.frozen:
-                    canfreeze[7+n_pets+n_foods]=1
-                else:
-                    canfreeze[n_pets+n_foods]=1
-                n_foods += 1
+            if slot.item.name=='pet-none' or slot.item.name=='food-none':
+                continue
+            if slot.frozen:
+                canfreeze[7+idx] = 1
+            else:
+                canfreeze[idx] = 1
+
         legal_v = np.concatenate((legal_v, canfreeze))
 
         # ROLL 1
