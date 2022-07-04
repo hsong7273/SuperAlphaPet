@@ -301,16 +301,19 @@ class Player():
             legal_v = np.concatenate((legal_v, np.zeros(35)))
         else:
             for idx, slot in enumerate(self.shop):
-                target = slot.item.name
-                if slot.slot_type!="pet" or slot.cost<self.gold:
+                if slot.slot_type!="pet" or slot.cost>self.gold:
                     legal_v = np.concatenate((legal_v, np.zeros(5)))
                     continue
+                if slot.item.name=='pet-none':
+                    legal_v = np.concatenate((legal_v, np.zeros(5)))
+                    continue
+                target = slot.item.name
                 # if affordable pet, check team
-                buy_v = np.zeros(5)
+                buyable = np.zeros(5)
                 for idx, ts in enumerate(self.team):
                     if ts.pet.name==target and ts.pet.level<3:
-                        buy_v[idx] = 1
-                legal_v = np.concatenate((legal_v, buy_v))
+                        buyable[idx] = 1
+                legal_v = np.concatenate((legal_v, buyable))
             legal_v = np.concatenate((legal_v, np.zeros(5*(7-len(self.shop)))))
 
         # SELL 5
