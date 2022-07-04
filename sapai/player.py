@@ -214,11 +214,16 @@ class Player():
                 state_v = np.concatenate((state_v, pet_v))
 
         # Parse shop information
-        # TODO: reimplement with fixed length shop
         n_pets = 0
         n_foods = 0
+        petpadded = False
         for idx, slot in enumerate(self.shop):
-            if slot.slot_type=="pet": # upto 7 pet slots
+            if slot.slot_type=="pet" or slot.slot_type=="levelup": # upto 7 pet slots
+                # Deal with pet-none
+                if slot.item.name=='pet-none':
+                    state_v = np.concatenate((state_v, np.zeros(self.nPets+4)))
+                    n_pets+=1
+                    continue
                 petid = self.petDict[slot.item.name]
                 slot_v = onehot(petid, self.nPets)
                 stat_v = [slot.item.attack/50., slot.item.health/50., slot.cost, slot.frozen*1]
@@ -227,8 +232,13 @@ class Player():
                 n_pets +=1
 
             if slot.slot_type=="food": # upto 2 food slots
-                if n_pets<7: # pad state vector with empty pet slots
+                if n_pets<7 and not petpadded: # pad state vector with empty pet slots
                     state_v = np.concatenate((state_v, np.zeros((7-n_pets)*(self.nPets+4))))
+                    petpadded = True
+                if slot.item.name=='food-none':
+                    state_v = np.concatenate((state_v, np.zeros(self.nFoods+2)))
+                    n_foods += 1
+                    continue
 
                 foodid = self.foodDict[slot.item.name]
                 food_v = onehot(foodid, self.nFoods)
@@ -313,24 +323,28 @@ class Player():
         # BUY FOOD (target/team) 2*5+2=12
         n_foods = 0
         for idx, slot in enumerate(self.shop):
-            if slot.slot_type=='pet':
+            if slot.slot_type=='pet' or 'levelup':
                 continue
-            if slot.cost>self.gold:
+            if slot.item.name=='food-none':
                 legal_v = np.concatenate((legal_v, np.zeros(6)))
                 continue
-            # check if targeted food
-            food = slot.item
-            n_foods+=1
-            targeted = targeted_food(food)
-            if targeted:
-                legal_v = np.concatenate((legal_v, np.ones(5),[0]))
-            else:
-                legal_v = np.concatenate((legal_v, np.zeros(5),[1]))
+            if slot.slot_type=='food':
+                if slot.cost>self.gold:
+                    legal_v = np.concatenate((legal_v, np.zeros(6)))
+                    continue
+                # check if targeted food
+                food = slot.item
+                n_foods+=1
+                targeted = targeted_food(food)
+                if targeted:
+                    legal_v = np.concatenate((legal_v, np.ones(5),[0]))
+                else:
+                    legal_v = np.concatenate((legal_v, np.zeros(5),[1]))
         # less than 2 foods in shop
         legal_v = np.concatenate((legal_v, np.zeros((2-n_foods)*6)))
 
         # FREEZE/UNFREEZE 7*2=14
-        #TODO: reimplement with fixed length shop
+
         canfreeze = np.zeros(14)
         n_foods = 0
         n_pets = 0
