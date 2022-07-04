@@ -108,7 +108,7 @@ class Player():
         
         ### Initialize shop and team if not provided
         if self.shop == None:
-            self.shop = Shop(pack=self.pack,seed_state=seed_state)
+            self.shop = Shop(pack=self.pack,seed_state=seed_state, turn=self.turn)
         if self.team == None:
             self.team = Team(seed_state=seed_state)
         
@@ -116,7 +116,7 @@ class Player():
             self.shop = Shop(self.shop,seed_state=seed_state)
         if type(self.team) == list:
             self.team = Team(self.team,seed_state=seed_state)
-            
+
         ### Connect objects
         self.team.player = self
         for slot in self.team:
@@ -438,7 +438,6 @@ class Player():
         
         ### Update Shop Rules and roll shop
         self.shop.next_turn() 
-        #TODO: check for shop-player turn desync?
 
         ### Activate start-of-turn triggers after rolling shop
         for slot in self.team:
