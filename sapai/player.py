@@ -290,7 +290,9 @@ class Player():
         # if not full, new pet can be placed anywhere, team will shift
         else:
             for idx, slot in enumerate(self.shop):
-                if slot.slot_type!="pet" or slot.cost<self.gold:
+                if slot.slot_type!="pet" or slot.cost>self.gold:
+                    legal_v = np.concatenate((legal_v, np.zeros(5)))
+                elif slot.item.name=='pet-none':
                     legal_v = np.concatenate((legal_v, np.zeros(5)))
                 else:
                     legal_v = np.concatenate((legal_v, np.ones(5)))
