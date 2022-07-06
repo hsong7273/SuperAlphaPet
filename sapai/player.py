@@ -725,7 +725,9 @@ class Player():
         shop_slot.unfreeze()
         return (shop_slot,)
         
-    
+    def move_to_slot(self, sidx, idx):
+        self.team.move(sidx,idx)
+
     @storeaction
     def roll(self):
         """ Roll shop """
@@ -806,6 +808,72 @@ class Player():
             slot._pet.buy_friend_trigger(team_pet)
             
         return shop_pet,team_pet
+
+    @storeaction
+    def buy_to_spot(self, pet, tidx):
+        
+        """ Place pet to team slot on purchase """
+        if len(self.team) == self._max_team:
+            raise Exception("Attempted to buy Pet on full team")
+
+        if type(pet) == int:
+            pet = self.shop[pet]
+            
+        if type(pet).__name__ == "ShopSlot":
+            pet = pet.item
+        
+        if type(pet).__name__ != "Pet":
+            raise Exception("Attempted buy_combined with Shop item {}"
+                            .format(pet))
+        if type(tidx) != int:
+            raise Exception("Attempted buy_to_spot with target idx {}")
+        
+        shop_idx = self.shop.index(pet)
+        shop_slot = self.shop.shop_slots[shop_idx]
+        cost = shop_slot.cost
+        
+        if cost > self.gold:
+            raise Exception("Attempted to buy Pet of cost {} with only {} gold"
+                            .format(cost, self.gold))
+        
+        ### Make all updates 
+        self.gold -= cost
+        self.shop.buy(pet)
+
+        target = self.team[tidx]
+        if not target.empty:
+            half1 = []
+            half2 = []
+            for teampet in self.team:
+                if self.team.index(teampet) < tidx:
+                    if not teampet.empty:
+                        half1.append(teampet)
+                if self.team.index(teampet) >= tidx:
+                    if not teampet.empty:
+                        half2.append(teampet)
+            newteampet = TeamSlot(obj=pet,seed_state=self.team.seed_state)
+            if tidx != 4:
+                half1.append(newteampet)
+            if tidx == 4:
+                half2.append(newteampet)
+            new_team = []
+            new_team += [x for x in half1]
+            new_team += [x for x in half2]
+            self.team = Team([new_team[x] for x in range(0,len(new_team))],
+                         seed_state=self.team.seed_state)
+
+        if target.empty:
+            self.team[tidx] = pet
+            
+        ### Check for buy_pet triggers
+        for slot in self.team:
+            slot._pet.buy_friend_trigger(pet)
+        
+        ### Check summon triggers after purchse
+        for slot in self.team:
+            slot._pet.friend_summoned_trigger(pet)
+        
+        return (pet,)
 
     @storeaction
     def combine(self, pet1, pet2):

@@ -39,12 +39,16 @@ class Team():
     def move(self, sidx, tidx):
         """ Moves animal from start idx to target idx """
         target = self[tidx]
+        start = self[sidx]
         if not target.empty:
-            raise Exception("Attempted move to a populated position")
-        ### Move
-        self[tidx] = self[sidx]
-        ### Dereference original position
-        self[sidx] = TeamSlot(seed_state = self.seed_state)
+            self[sidx] = target
+            self[tidx] = start
+
+        if target.empty:
+            ### Move
+            self[tidx] = self[sidx]
+            ### Dereference original position
+            self[sidx] = TeamSlot(seed_state = self.seed_state)
             
     
     def move_forward(self, start_idx=0, end_idx=10):
