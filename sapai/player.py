@@ -724,9 +724,44 @@ class Player():
         shop_slot = self.shop.shop_slots[shop_idx]
         shop_slot.unfreeze()
         return (shop_slot,)
-        
-    def move_to_slot(self, sidx, idx):
-        self.team.move(sidx,idx)
+    
+    #Move from start id to target id
+    def move_to_slot(self, sidx, tidx):
+        target = self.team[tidx]
+        start = self.team[sidx]
+        if start.empty:
+            raise Exception("Attempted to move a slot that is empty")
+        if target.empty:
+            self.team[tidx] = start
+            self.team[sidx] = TeamSlot(seed_state = self.team.seed_state)
+        if not target.empty:
+            half1 = []
+            half2 = []
+            
+            tempteam = []
+            for teampet in self.team:
+                if not teampet.empty:
+                    tempteam.append(teampet)
+
+            for teampet in tempteam:
+                if tempteam.index(teampet) < tidx:
+                    if not teampet.empty:
+                        half1.append(teampet)
+                if tempteam.index(teampet) >= tidx:
+                    if not teampet.empty:
+                        half2.append(teampet)
+
+            if tidx != (self._max_team - 1):
+                half1.append(start)
+            if tidx == (self._max_team - 1):
+                half2.append(start)
+            new_team = []
+            new_team += [x for x in half1]
+            new_team += [x for x in half2]
+            self.team = Team([new_team[x] for x in range(0,len(new_team))],
+                         seed_state=self.team.seed_state)
+
+
 
     @storeaction
     def roll(self):
@@ -852,9 +887,9 @@ class Player():
                     if not teampet.empty:
                         half2.append(teampet)
             newteampet = TeamSlot(obj=pet,seed_state=self.team.seed_state)
-            if tidx != 4:
+            if tidx != (self._max_team - 1):
                 half1.append(newteampet)
-            if tidx == 4:
+            if tidx == (self._max_team - 1):
                 half2.append(newteampet)
             new_team = []
             new_team += [x for x in half1]
