@@ -376,12 +376,15 @@ class Player():
             raise Exception(f"Wrong action vector size, {len(legal_v)}, not {self.action_length}")
         return legal_v
 
-    
+    def action_ID(self, action_idx):
+        pass
+
     def execute(self, action_idx):
         ### Interpret action_idx and execute
         # This move should always be legal, check anyway
         if self.legal_actions[action_idx] == 0:
-            raise Exception("Attempted Illegal Move")
+            raise Exception(f"Attempted Illegal Move {action_idx}")
+
         # MOVE 5*4=20
         if 0<=action_idx<20:
             idx = action_idx-20
@@ -435,6 +438,7 @@ class Player():
                 self.freeze(item)
             elif freeze==1:
                 self.unfreeze(item)
+        
         # ROLL 1
         elif action_idx==141:
             self.roll()
@@ -444,12 +448,24 @@ class Player():
 
     
     @storeaction
-    def start_turn(self, winner=None):
+    def start_turn(self, result=0):
         ### Update turn count and gold
         self.turn += 1
         self.gold = self.default_gold
-        self.lf_winner = winner
-        
+        # bool used for snail
+        if result==0:
+            self.lf_winner=False
+        else:
+            self.lf_winner=True
+        # Calculate lives
+        if result==0:
+            self.lives -= np.clip(min(3, self.turn),0)
+            # Handle death in gamephase
+        elif result==1:
+            self.wins+=1
+            # Handle victory in gamephase
+        ### For terminal states, player will continue but Memory Building should not use next states            
+
         ### Update Shop Rules and roll shop
         self.shop.next_turn() 
 
