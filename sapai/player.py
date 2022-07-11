@@ -747,9 +747,9 @@ class Player():
             newteampet.append(start)
             newL = 0
             for petid in range(self._max_team):
-                if petid <= tidx:
+                if petid < tidx:
                     half1.append(tempteam[petid])
-                if petid > tidx:
+                if petid >= tidx:
                     half2.append(tempteam[petid])
             
             new_team = []
@@ -777,10 +777,21 @@ class Player():
 
             if newL > self._max_team:
                 emptydel = False
-                for pet in new_team:
-                    if pet.empty and (emptydel == False):
-                        del(new_team[new_team.index(pet)])
-                        emptydel = True
+                if not new_team[0].empty and not new_team[self._max_team].empty:
+                    if tidx < (self._max_team/2):
+                        for petx in new_team:
+                            if petx.empty and (emptydel == False):
+                                del(new_team[new_team.index(petx)])
+                                emptydel = True
+                    if tidx > (self._max_team/2):
+                        for petx in reversed(new_team):
+                            if petx.empty and (emptydel == False):
+                                del(new_team[new_team.index(petx)])
+                                emptydel = True
+
+                if new_team[0].empty and not new_team[self._max_team].empty:
+                    del(new_team[0])
+                
                 self.team = Team([new_team[x] for x in range(0,self._max_team)],
                             seed_state=self.team.seed_state)
 
@@ -907,9 +918,9 @@ class Player():
             tempteam = self.team
             newL = 0
             for petid in range(self._max_team):
-                if petid <= tidx:
+                if petid < tidx:
                     half1.append(tempteam[petid])
-                if petid > tidx:
+                if petid >= tidx:
                     half2.append(tempteam[petid])
 
             new_team = []
@@ -918,17 +929,17 @@ class Player():
                 new_team += [x for x in half1]
                 new_team += [x for x in half2]
 
-            if tidx == self._max_team:
+            if tidx == (self._max_team-1):
                 new_team += [x for x in half1]
                 new_team += [x for x in half2]
                 new_team += [x for x in newteampetL]
             
-            if tidx != 0 and tidx != self._max_team:
+            if tidx != 0 and tidx != (self._max_team-1):
                 new_team += [x for x in half1]
                 new_team += [x for x in newteampetL]
                 new_team += [x for x in half2]
 
-            for pet in new_team:
+            for x in new_team:
                 newL += 1
 
             if newL == self._max_team:
@@ -937,10 +948,21 @@ class Player():
 
             if newL > self._max_team:
                 emptydel = False
-                for pet in new_team:
-                    if pet.empty and (emptydel == False):
-                        del(new_team[new_team.index(pet)])
-                        emptydel = True
+                if not new_team[0].empty and not new_team[self._max_team].empty:
+                    if tidx < (self._max_team/2):
+                        for petx in new_team:
+                            if petx.empty and (emptydel == False):
+                                del(new_team[new_team.index(petx)])
+                                emptydel = True
+                    if tidx > (self._max_team/2):
+                        for petx in reversed(new_team):
+                            if petx.empty and (emptydel == False):
+                                del(new_team[new_team.index(petx)])
+                                emptydel = True
+
+                if new_team[0].empty and not new_team[self._max_team].empty:
+                    del(new_team[0])
+                
                 self.team = Team([new_team[x] for x in range(0,self._max_team)],
                             seed_state=self.team.seed_state)
 
