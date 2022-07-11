@@ -903,6 +903,11 @@ class Player():
             raise Exception("Attempted to buy Pet of cost {} with only {} gold"
                             .format(cost, self.gold))
         
+        ### Connect pet with current Player 
+        pet.team = self.team
+        pet.player = self
+        pet.shop = self.shop
+
         ### Make all updates 
         self.gold -= cost
         self.shop.buy(pet)
