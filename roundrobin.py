@@ -6,6 +6,7 @@ def roundrobin(players: list[Player], rounds=-1):
 	'''Conducts RoundRobin battles between players
 	Returns winrates
 	Only supports single-roundrobin
+	Matchups are always done in order, players are assumed to be uncorrelated
 	'''
 	if rounds==-1:
 		rounds = len(players)-1
