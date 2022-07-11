@@ -387,11 +387,13 @@ class Player():
 
         # MOVE 5*4=20
         if 0<=action_idx<20:
-            idx = action_idx-20
+            idx = action_idx
             target = int(idx/4)
-            friends = [i for i in range(5) if i!=sacrifice]
+            # Other team positions
+            friends = [i for i in range(5) if i!=target]
             destination = friends[idx%4] 
-            #TODO: MOVE PET FUNCTION(target, destination)
+            self.move_to_slot(target, destination)
+
         # MOVE-LEVELUP 5*4=20
         elif 20<=action_idx<40:
             idx = action_idx-20
@@ -403,11 +405,10 @@ class Player():
         # BUYPET-PLACE 7*5=35
         elif 40<=action_idx<75:
             idx = action_idx-40
-            idx = action_idx-75
             s_pet = int(idx/5)
             teamspot = idx%5
-            #TODO: BUY-PLACE FUNCTION(s_pet, teamspot)
-            pass
+            self.buy_to_spot(s_pet, teamspot)
+
         # BUYPET-LEVELUP 7*5=35
         elif 75<=action_idx<110:
             idx = action_idx-75
