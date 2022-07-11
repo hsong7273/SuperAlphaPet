@@ -428,7 +428,7 @@ class Player():
             target = idx%6
             if target==5:
                 target=None
-            self.buy_food(food, target)
+            self.buy_food(food+5, target)
 
         # FREEZE/UNFREEZE 7*2=14
         elif 127<=action_idx<141:
