@@ -731,37 +731,58 @@ class Player():
         start = self.team[sidx]
         if start.empty:
             raise Exception("Attempted to move a slot that is empty")
+
         if target.empty:
             self.team[tidx] = start
             self.team[sidx] = TeamSlot(seed_state = self.team.seed_state)
+
         if not target.empty:
             half1 = []
             half2 = []
+            newteampet = []
             
-            tempteam = []
-            for teampet in self.team:
-                if not teampet.empty:
-                    tempteam.append(teampet)
+            tempteam = self.team
+            tempteam[sidx] = TeamSlot(seed_state = self.team.seed_state)
 
-            for teampet in tempteam:
-                if tempteam.index(teampet) < tidx:
-                    if not teampet.empty:
-                        half1.append(teampet)
-                if tempteam.index(teampet) >= tidx:
-                    if not teampet.empty:
-                        half2.append(teampet)
-
-            if tidx != (self._max_team - 1):
-                half1.append(start)
-            if tidx == (self._max_team - 1):
-                half2.append(start)
+            newteampet.append(start)
+            newL = 0
+            for petid in range(self._max_team):
+                if petid <= tidx:
+                    half1.append(tempteam[petid])
+                if petid > tidx:
+                    half2.append(tempteam[petid])
+            
             new_team = []
-            new_team += [x for x in half1]
-            new_team += [x for x in half2]
-            self.team = Team([new_team[x] for x in range(0,len(new_team))],
-                         seed_state=self.team.seed_state)
+            if tidx == 0:
+                new_team += [x for x in newteampet]
+                new_team += [x for x in half1]
+                new_team += [x for x in half2]
 
+            if tidx == self._max_team:
+                new_team += [x for x in half1]
+                new_team += [x for x in half2]
+                new_team += [x for x in newteampet]
+            
+            if tidx != 0 and tidx != self._max_team:
+                new_team += [x for x in half1]
+                new_team += [x for x in newteampet]
+                new_team += [x for x in half2]
 
+            for pet in new_team:
+                newL += 1
+
+            if newL == self._max_team:
+                self.team = Team([new_team[x] for x in range(0,self._max_team)],
+                            seed_state=self.team.seed_state)
+
+            if newL > self._max_team:
+                emptydel = False
+                for pet in new_team:
+                    if pet.empty and (emptydel == False):
+                        del(new_team[new_team.index(pet)])
+                        emptydel = True
+                self.team = Team([new_team[x] for x in range(0,self._max_team)],
+                            seed_state=self.team.seed_state)
 
     @storeaction
     def roll(self):
@@ -876,29 +897,55 @@ class Player():
         self.shop.buy(pet)
 
         target = self.team[tidx]
+        newteampet = TeamSlot(obj=pet,seed_state=self.team.seed_state)
         if not target.empty:
             half1 = []
             half2 = []
-            for teampet in self.team:
-                if self.team.index(teampet) < tidx:
-                    if not teampet.empty:
-                        half1.append(teampet)
-                if self.team.index(teampet) >= tidx:
-                    if not teampet.empty:
-                        half2.append(teampet)
-            newteampet = TeamSlot(obj=pet,seed_state=self.team.seed_state)
-            if tidx != (self._max_team - 1):
-                half1.append(newteampet)
-            if tidx == (self._max_team - 1):
-                half2.append(newteampet)
+            newteampetL = []
+            newteampetL.append(newteampet)
+
+            tempteam = self.team
+            newL = 0
+            for petid in range(self._max_team):
+                if petid <= tidx:
+                    half1.append(tempteam[petid])
+                if petid > tidx:
+                    half2.append(tempteam[petid])
+
             new_team = []
-            new_team += [x for x in half1]
-            new_team += [x for x in half2]
-            self.team = Team([new_team[x] for x in range(0,len(new_team))],
-                         seed_state=self.team.seed_state)
+            if tidx == 0:
+                new_team += [x for x in newteampetL]
+                new_team += [x for x in half1]
+                new_team += [x for x in half2]
+
+            if tidx == self._max_team:
+                new_team += [x for x in half1]
+                new_team += [x for x in half2]
+                new_team += [x for x in newteampetL]
+            
+            if tidx != 0 and tidx != self._max_team:
+                new_team += [x for x in half1]
+                new_team += [x for x in newteampetL]
+                new_team += [x for x in half2]
+
+            for pet in new_team:
+                newL += 1
+
+            if newL == self._max_team:
+                self.team = Team([new_team[x] for x in range(0,self._max_team)],
+                            seed_state=self.team.seed_state)
+
+            if newL > self._max_team:
+                emptydel = False
+                for pet in new_team:
+                    if pet.empty and (emptydel == False):
+                        del(new_team[new_team.index(pet)])
+                        emptydel = True
+                self.team = Team([new_team[x] for x in range(0,self._max_team)],
+                            seed_state=self.team.seed_state)
 
         if target.empty:
-            self.team[tidx] = pet
+            self.team[tidx] = newteampet
             
         ### Check for buy_pet triggers
         for slot in self.team:
