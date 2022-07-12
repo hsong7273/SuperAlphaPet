@@ -454,12 +454,12 @@ class Player():
         self.turn += 1
         self.gold = self.default_gold
         # bool used for snail
-        if result==0:
+        if result==-1:
             self.lf_winner=False
         else:
             self.lf_winner=True
         # Calculate lives
-        if result==0:
+        if result==-1:
             self.lives -= np.clip(min(3, self.turn),0)
             # Handle death in gamephase
         elif result==1:
