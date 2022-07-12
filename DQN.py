@@ -198,21 +198,20 @@ class ModelTrainer():
 				s = np.array([mems[0][i] for i in f_ind])
 				a = np.array([mems[1][i] for i in f_ind])
 				r = np.array([mems[3][i] for i in f_ind])
-
-				# Train with final memories
-				s = torch.Tensor(s).to(DEVICE).float()
-				a = torch.Tensor(a).to(DEVICE).type(torch.int64)
-				r = torch.Tensor(r).to(DEVICE)
-				# Reevaluate action scores
-				act_s = model(s)
-				# Chosen action-values
-				Q_a = act_s.gather(1, a.view(-1,1)).flatten()
-				# Calculate target values
-				with torch.no_grad():
-					# Don't need to "look-ahead past final state"
-					y = r
-				# Calculate Loss	
-				loss = self.criterion(Q_a, y)
+				if len(s)!=0: # Train with final memories
+					s = torch.Tensor(s).to(DEVICE).float()
+					a = torch.Tensor(a).to(DEVICE).type(torch.int64)
+					r = torch.Tensor(r).to(DEVICE)
+					# Reevaluate action scores
+					act_s = model(s)
+					# Chosen action-values
+					Q_a = act_s.gather(1, a.view(-1,1)).flatten()
+					# Calculate target values
+					with torch.no_grad():
+						# Don't need to "look-ahead past final state"
+						y = r
+					# Calculate Loss	
+					loss = self.criterion(Q_a, y)
 
 				# Select non-terminal memories
 				f_ind = [i for i in range(len(mems[0])) if type(mems[2][i])==np.ndarray]
@@ -220,22 +219,22 @@ class ModelTrainer():
 				a = np.array([mems[1][i] for i in f_ind])
 				n = np.array([mems[2][i] for i in f_ind])
 				r = np.array([mems[3][i] for i in f_ind])
-
-				# Train with non-terminal memories
-				s = torch.Tensor(s).to(DEVICE).float()
-				a = torch.Tensor(a).to(DEVICE).type(torch.int64)
-				n = torch.Tensor(n).to(DEVICE).float()
-				r = torch.Tensor(r).to(DEVICE)
-				# Reevaluate action scores
-				act_s = model(s)
-				# Chosen action-values
-				Q_a = act_s.gather(1, a.view(-1,1)).flatten()
-				# Calculate target values
-				with torch.no_grad():
-					Q_f = model(n).max(1)[0]
-					y = r+self.gamma*Q_f
-				# Calculate Loss
-				loss = loss + self.criterion(Q_a, y)
+				if len(s)!=0:
+					# Train with non-terminal memories
+					s = torch.Tensor(s).to(DEVICE).float()
+					a = torch.Tensor(a).to(DEVICE).type(torch.int64)
+					n = torch.Tensor(n).to(DEVICE).float()
+					r = torch.Tensor(r).to(DEVICE)
+					# Reevaluate action scores
+					act_s = model(s)
+					# Chosen action-values
+					Q_a = act_s.gather(1, a.view(-1,1)).flatten()
+					# Calculate target values
+					with torch.no_grad():
+						Q_f = model(n).max(1)[0]
+						y = r+self.gamma*Q_f
+					# Calculate Loss
+					loss = loss + self.criterion(Q_a, y)
 				loss_i += loss.item()
 
 				# Optimize model
