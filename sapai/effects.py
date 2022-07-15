@@ -648,18 +648,19 @@ def ModifyStats(apet,apet_idx,teams,te=None,te_idx=[],fixed_targets=[]):
             else:
                 raise Exception()
     for target_pet in target:
-        if "untilEndOfBattle" in apet.ability["effect"] and apet.ability["effect"]["untilEndOfBattle"] is True:
-            target_pet._until_end_of_battle_attack_buff += attack_amount
-            target_pet._until_end_of_battle_health_buff += health_amount
-        else:
-            target_pet._attack += attack_amount
-            target_pet._health += health_amount
-        if "includingFuture" in apet.ability["effect"]["target"] and apet.ability["effect"]["target"]["includingFuture"] is True:
-            if (target_pet.shop is not None):
-                target_pet.shop.shop_attack += attack_amount
-                target_pet.shop.shop_health += health_amount
-        target_pet._attack = min([target_pet._attack,50])
-        target_pet._health = min([target_pet._health,50])
+        if target_pet.name != "pet-none":
+            if "untilEndOfBattle" in apet.ability["effect"] and apet.ability["effect"]["untilEndOfBattle"] is True:
+                target_pet._until_end_of_battle_attack_buff += attack_amount
+                target_pet._until_end_of_battle_health_buff += health_amount
+            else:
+                target_pet._attack += attack_amount
+                target_pet._health += health_amount
+            if "includingFuture" in apet.ability["effect"]["target"] and apet.ability["effect"]["target"]["includingFuture"] is True:
+                if (target_pet.shop is not None):
+                    target_pet.shop.shop_attack += attack_amount
+                    target_pet.shop.shop_health += health_amount
+            target_pet._attack = min([target_pet._attack,50])
+            target_pet._health = min([target_pet._health,50])
     
     return target,possible
 
