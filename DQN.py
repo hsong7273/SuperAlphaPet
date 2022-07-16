@@ -173,7 +173,7 @@ class ModelTrainer():
 		self.rewards = []
 		self.values = []
 
-	def train(self, model, memories, Nepochs=1):
+	def train(self, model, t_model, memories, Nepochs=1):
 		'''Training Loop over memories
 		'''
 		# Make Dataset and DataLoader
@@ -234,10 +234,9 @@ class ModelTrainer():
 					act_s = model(s)
 					# Chosen action-values
 					Q_a = act_s.gather(1, a.view(-1,1)).flatten()
-					# Calculate target values
-					with torch.no_grad():
-						Q_f = model(n).max(1)[0]
-						y = r+self.gamma*Q_f
+					# Calculate target values with target model
+					Q_f = t_model(n).max(1)[0].detach()
+					y = r+self.gamma*Q_f
 					# Calculate Loss
 					if terminal:
 						loss = loss + self.criterion(Q_a, y)
@@ -251,6 +250,8 @@ class ModelTrainer():
 				self.optimizer.step()
 			# Save losses for metrics
 			self.losses.append(loss_i)
+			# Copy parameters to target network
+			t_model.load_state_dict(model.state_dict())
 
 
 if __name__=='__main__':
@@ -259,8 +260,10 @@ if __name__=='__main__':
 	# initialize model to appropriate size for player
 	pl = Player()
 	model = FCN(pl.state_length, pl.action_length)
+	t_model = FCN(pl.state_length, pl.action_length)
+
 	# Prepare 10 teams in ShopPhase
-	shopphase = ShopPhase_Turn1(100, model)
+	shopphase = ShopPhase_Turn1(10, model)
 	shopphase.turn()
 
 	# Print first 3 teams made by AI
@@ -270,4 +273,4 @@ if __name__=='__main__':
 	# Train model with memories of shopphase
 	mt = ModelTrainer(model)
 	transitions = shopphase.memories
-	mt.train(model, transitions)
+	mt.train(model, t_model, transitions)
