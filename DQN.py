@@ -100,18 +100,17 @@ class ShopPhase_Turn1():
 				# Calculate Q(s,a), and mask legal actions
 				action_scores = self.model(state)
 				legal = torch.from_numpy(player.legal_actions).to(DEVICE)
-				action_scores = torch.mul(legal, action_scores)
+				illegal = torch.where(legal==0, 1, 0)
+
+				action_scores = torch.add(-999*illegal, action_scores)
 
 				# Epsilon Greedy Policy
 				rand_i = np.random.rand()
 				if rand_i>epsilon: # Exploit
 					action_idx = torch.argmax(action_scores).item()
 				elif rand_i<=epsilon: # Explore
-					# get nonzero INDICES
-					nonzero_actions = action_scores.nonzero().flatten()
-					nonzero_actions = nonzero_actions.cpu().numpy()
 					# Select Random Legal Action
-					action_idx = int(np.random.choice(nonzero_actions))
+					action_idx = int(np.random.choice(player.legal_actions.nonzero()[0]))
 				# Execute action
 				player.execute(action_idx)
 
@@ -193,12 +192,17 @@ class ModelTrainer():
 				except StopIteration:
 					# Stop when no more memories
 					break
+				# Checks for loss calculation
+				terminal = False
+				intermediate = False
+
 				# Select Terminal memories
 				f_ind = [i for i in range(len(mems[0])) if type(mems[2][i])!=np.ndarray]
 				s = np.array([mems[0][i] for i in f_ind])
 				a = np.array([mems[1][i] for i in f_ind])
 				r = np.array([mems[3][i] for i in f_ind])
 				if len(s)!=0: # Train with final memories
+					terminal = True
 					s = torch.Tensor(s).to(DEVICE).float()
 					a = torch.Tensor(a).to(DEVICE).type(torch.int64)
 					r = torch.Tensor(r).to(DEVICE)
@@ -220,6 +224,7 @@ class ModelTrainer():
 				n = np.array([mems[2][i] for i in f_ind])
 				r = np.array([mems[3][i] for i in f_ind])
 				if len(s)!=0:
+					intermediate = True
 					# Train with non-terminal memories
 					s = torch.Tensor(s).to(DEVICE).float()
 					a = torch.Tensor(a).to(DEVICE).type(torch.int64)
@@ -234,7 +239,10 @@ class ModelTrainer():
 						Q_f = model(n).max(1)[0]
 						y = r+self.gamma*Q_f
 					# Calculate Loss
-					loss = loss + self.criterion(Q_a, y)
+					if terminal:
+						loss = loss + self.criterion(Q_a, y)
+					else:
+						loss = self.criterion(Q_a, y)
 				loss_i += loss.item()
 
 				# Optimize model
@@ -252,7 +260,7 @@ if __name__=='__main__':
 	pl = Player()
 	model = FCN(pl.state_length, pl.action_length)
 	# Prepare 10 teams in ShopPhase
-	shopphase = ShopPhase_Turn1(10, model)
+	shopphase = ShopPhase_Turn1(100, model)
 	shopphase.turn()
 
 	# Print first 3 teams made by AI
@@ -262,4 +270,4 @@ if __name__=='__main__':
 	# Train model with memories of shopphase
 	mt = ModelTrainer(model)
 	transitions = shopphase.memories
-	mt.train(model, transitions, 10)
+	mt.train(model, transitions)
