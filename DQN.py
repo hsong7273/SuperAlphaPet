@@ -123,7 +123,7 @@ class ShopPhase_Turn1():
 					memory = [state_0, action_idx, player.state_vector, 0]
 					self.memories.append(memory)
 					state_0 = player.state_vector
-					player.end_turn()
+					player.end_turn()	
 					return state_0
 
 				# Save non-endturn memory
@@ -134,7 +134,7 @@ class ShopPhase_Turn1():
 		state_0 = []
 		self.memories = []
 		
-		# metrics
+		# metrics 
 		self.teamsize = []
 		self.teamattack = []
 		for pl in self.players:
@@ -151,6 +151,7 @@ class ShopPhase_Turn1():
 
 		# Round Robin Battle
 		self.rates = roundrobin(self.players)
+		# rates = np.random.rand(1)
 
 		for idx, (pl, wr) in enumerate(zip(self.players, self.rates)):
 			# Calculate lives and rewards
@@ -164,8 +165,6 @@ class ShopPhase_Turn1():
 			# Last action will have been end_turn
 			memory = [state_0[idx], 142, None, reward]
 			self.memories.append(memory)
-
-
 class ModelTrainer():
 	'''DQN: trains model handles dataloader, loss, optimizers'''
 	def __init__(self, model:nn.Module, t_model:nn.Module, criterion=nn.MSELoss, optimizer=optim.SGD):
