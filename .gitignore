@@ -5,6 +5,7 @@ torch_test.py
 Papers/
 data/
 Slides/
+Figures/
 sandbox.py
 # Distribution / packaging
 .Python
