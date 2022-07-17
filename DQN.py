@@ -134,14 +134,23 @@ class ShopPhase_Turn1():
 		state_0 = []
 		self.memories = []
 		
+		# metrics
+		self.teamsize = []
+		self.teamattack = []
 		for pl in self.players:
 			# shop returns last state before end_turn
 			last_state = self.shop(pl, epsilon=epsilon)
 			state_0.append(last_state)
+			# metrics
+			self.teamsize.append(len(pl.team))
+			attacks = []
+			for ts in pl.team:
+				if type(ts.pet.attack)==int:
+					attacks.append(ts.pet.attack)
+			self.teamattack.append(sum(attacks))
 
 		# Round Robin Battle
 		self.rates = roundrobin(self.players)
-		# rates = np.random.rand(1)
 
 		for idx, (pl, wr) in enumerate(zip(self.players, self.rates)):
 			# Calculate lives and rewards
