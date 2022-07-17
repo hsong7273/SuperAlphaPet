@@ -165,6 +165,7 @@ class ShopPhase_Turn1():
 			# Last action will have been end_turn
 			memory = [state_0[idx], 142, None, reward]
 			self.memories.append(memory)
+			
 class ModelTrainer():
 	'''DQN: trains model handles dataloader, loss, optimizers'''
 	def __init__(self, model:nn.Module, t_model:nn.Module, criterion=nn.MSELoss, optimizer=optim.SGD):
