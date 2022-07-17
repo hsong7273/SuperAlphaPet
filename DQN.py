@@ -159,7 +159,10 @@ class ShopPhase_Turn1():
 
 class ModelTrainer():
 	'''DQN: trains model handles dataloader, loss, optimizers'''
-	def __init__(self, model:nn.Module, criterion=nn.MSELoss, optimizer=optim.SGD):
+	def __init__(self, model:nn.Module, t_model:nn.Module, criterion=nn.MSELoss, optimizer=optim.SGD):
+		# Load onto device
+		model = model.to(DEVICE)
+		t_model = t_model.to(DEVICE)
 		# Constants
 		self.BATCH=100
 		self.gamma = 0.9
