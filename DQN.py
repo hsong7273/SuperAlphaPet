@@ -173,12 +173,12 @@ class ModelTrainer():
 		model = model.to(DEVICE)
 		t_model = t_model.to(DEVICE)
 		# Constants
-		self.BATCH=100
+		self.BATCH = 100
 		self.gamma = 0.9
 
 		# Chosen Loss Function
 		self.criterion = criterion().to(DEVICE)
-		self.optimizer = optimizer(model.parameters(), lr=0.1, momentum=0.9)
+		self.optimizer = optimizer
 
 		# Metrics
 		self.losses = []
@@ -274,15 +274,41 @@ if __name__=='__main__':
 	model = FCN(pl.state_length, pl.action_length)
 	t_model = FCN(pl.state_length, pl.action_length)
 
-	# Prepare 10 teams in ShopPhase
-	shopphase = ShopPhase_Turn1(10, model)
-	shopphase.turn()
+	optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=0.1)
+
+	mt = ModelTrainer(model, t_model, optimizer=optimizer)
+
+	# Training parameters
+	n_Teams = 50
+	n_Rounds = 20
+
+	teamsize = []
+	teamattack = []
+	losses = []
+
+	for i in range(n_Rounds):
+		# Model prepares N_teams
+		shopphase = ShopPhase_Turn1(n_Teams, model)
+		shopphase.turn()
+		# Save metrics
+		teamsize.append(np.average(shopphase.teamsize))
+		teamattack.append(np.average(shopphase.teamattack))
+		# Train with SAP playing model & memories
+		transitions = shopphase.memories
+		mt.train(model, t_model, transitions)
+		losses.append(mt.losses[0]/len(transitions))
 
 	# Print first 3 teams made by AI
 	for i in range(3):
 		print(shopphase.players[i].team)
 
-	# Train model with memories of shopphase
-	mt = ModelTrainer(model)
-	transitions = shopphase.memories
-	mt.train(model, t_model, transitions)
+	fsize = 16
+	plt.figure(figsize=(10,6), facecolor='white')
+	plt.plot(teamsize,'r-', label='Average Team Size')
+	plt.plot(teamattack, 'g-', label='Average Team Attack')
+	plt.title("Model Performance over Training", fontsize=fsize)
+	plt.xlabel('Training Round', fontsize=fsize)
+	plt.xticks(fontsize=fsize)
+	plt.yticks(fontsize=fsize)
+	plt.legend(fontsize=fsize)
+	plt.show()
