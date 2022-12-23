@@ -376,7 +376,10 @@ class Player():
             raise Exception(f"Wrong action vector size, {len(legal_v)}, not {self.action_length}")
         return legal_v
 
-    def action_ID(self, action_idx):
+    def actionID(self, action_idx):
+        '''Descriptive string for given action ID
+        Ex: buy pet {0} and place in spot {1}
+        '''
         pass
 
     def execute(self, action_idx):
